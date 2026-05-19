@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Renote 2 (Unpackaged)": {
+      "commandName": "Project"
+    },
+    "Renote 2 (Package)": {
+      "commandName": "MsixPackage"
+    }
+  }
+}

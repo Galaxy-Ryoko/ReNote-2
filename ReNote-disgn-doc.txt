@@ -1,0 +1,121 @@
+﻿1. Purpose
+Develop a lightweight, native Windows text editor using WinUI 3 (Windows App SDK). The application replicates and modestly extends the core functionality of Windows Notepad while leveraging modern WinUI controls, fluent design, and platform integration for improved performance and accessibility.
+
+2. Target Platform and Technology Stack
+Framework: WinUI 3 (Windows App SDK)
+Language: C# (recommended)
+Minimum OS: Windows 10 19041 or Windows 11
+Architecture: Single executable, packaged MSIX
+Key WinUI components: Window, MenuBar, TextBox (or RichEditBox for advanced formatting if needed), StatusBar, Dialogs (ContentDialog), NavigationView (optional for sidebar)
+Storage: Standard file I/O with async APIs
+Settings: LocalSettings or JSON-based user preferences
+
+3. Core Requirements
+Single or multi-document interface (tabbed recommended for usability)
+Support for plain text files (.txt) with optional encoding detection (UTF-8, UTF-16, ANSI)
+High performance for large files (up to tens of MB)
+Full keyboard shortcut support matching Windows conventions
+Accessibility compliance (UI Automation, high contrast, screen reader support)
+Fluent Design: Mica/Acrylic backdrop, responsive layout, dark/light theme following system settings
+
+4. Menu Structure and Functions
+File Menu
+New (Ctrl+N) – Opens a new tab/untitled document
+New Window – Opens a separate application instance
+Open... (Ctrl+O) – File picker with common text filters; auto-detect encoding
+Save (Ctrl+S)
+Save As... (Ctrl+Shift+S) – With encoding selection dialog
+Save All (multi-tab)
+Print... (Ctrl+P) – Standard Windows print dialog with preview
+Page Setup (optional)
+Recent Files (dynamic list, configurable count)
+Exit (Alt+F4)
+
+Edit Menu
+
+Undo (Ctrl+Z)
+Redo (Ctrl+Y)
+Cut (Ctrl+X)
+Copy (Ctrl+C)
+Paste (Ctrl+V)
+Delete (Del)
+Find... (Ctrl+F)
+Find Next (F3)
+Replace... (Ctrl+H)
+Select All (Ctrl+A)
+Time/Date (F5) – Inserts current timestamp
+Word Wrap toggle
+Font... – Opens font selection dialog (applied per document or global)
+
+View Menu
+
+Status Bar (toggle) – Shows line/column, character count, encoding, file size
+Zoom In/Out/Reset (Ctrl + mouse wheel or menu)
+Full Screen (optional, F11)
+Theme switch (Light/Dark/System) if not automatic
+
+Window Menu (for multi-tab or MDI)
+
+New Tab
+Close Tab (Ctrl+W)
+Close All Tabs
+Tab navigation (Ctrl+Tab, Ctrl+Shift+Tab)
+
+Help Menu
+
+View Help – Link to documentation or basic usage
+About – Displays version, copyright, and system information
+
+5. Editor Features
+
+Multi-tab interface using TabView control
+Line numbering (optional, toggleable)
+Syntax highlighting disabled by default (plain text focus); optional simple highlighting via custom renderer
+Auto-indent and basic auto-complete (optional)
+Drag-and-drop text/files
+Right-click context menu mirroring Edit functions
+Automatic recovery of unsaved changes on crash (temporary files)
+Search with options: match case, whole word, direction, wrap around
+Character encoding handling on open/save with user override
+
+6. Non-Functional Requirements
+
+Startup time < 1 second
+Low memory footprint
+Proper handling of very large files (lazy loading or warnings)
+Session restoration (reopen last files on startup – user configurable)
+Localization support (resource files for strings)
+Error handling: graceful degradation for permission issues, disk full, etc.
+
+7. User Interface Layout
+
+Top: MenuBar (or Application title bar with menu)
+Toolbar (optional, minimal – New, Open, Save, Cut/Copy/Paste, Find)
+Central area: TabView containing ScrollViewer + TextBox (multi-line, accepts return, spellcheck optional)
+Bottom: StatusBar (line, column, length, encoding, zoom level)
+Responsive: adapts to window resize, supports snapped view
+
+8. Settings and Persistence
+
+Remember last window position/size
+Default font, word wrap state, encoding preference
+Recent files list (stored securely)
+Option to restore unsaved tabs on next launch
+
+9. Implementation Notes (WinUI Specific)
+
+Use Microsoft.UI.Xaml.Controls.MenuBar and MenuFlyout
+Microsoft.UI.Xaml.Controls.TabView for documents
+TextBox with AcceptsReturn="True", TextWrapping, and IsSpellCheckEnabled
+File operations via Windows.Storage APIs for picker and async I/O
+MVVM pattern recommended for maintainability (CommunityToolkit.Mvvm)
+Use DispatcherQueue for UI thread safety
+Packaging: Single-project MSIX with manifest declarations for file associations (.txt)
+
+10. Testing Considerations
+
+Functional tests for all menu items and shortcuts
+Encoding round-trip verification
+Large file performance
+Accessibility testing with Narrator
+Edge cases: read-only files, network paths, permission denied

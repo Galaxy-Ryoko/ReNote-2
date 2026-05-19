@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Renote_2.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Renote_2"
+    xmlns:converters="using:Renote_2.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Renote 2">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="RootGrid" RowDefinitions="Auto,*,Auto" KeyDown="RootGrid_KeyDown">
+        <MenuBar Grid.Row="0">
+            <MenuBarItem Title="File">
+                <MenuFlyoutItem x:Name="NewMenuItem" Text="New" Click="OnNewClick"/>
+                <MenuFlyoutItem x:Name="NewWindowMenuItem" Text="New Window" Click="OnNewWindowClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open..." Click="OnOpenClick"/>
+                <MenuFlyoutItem x:Name="SaveMenuItem" Text="Save" Click="OnSaveClick"/>
+                <MenuFlyoutItem x:Name="SaveAsMenuItem" Text="Save As..." Click="OnSaveAsClick"/>
+                <MenuFlyoutItem x:Name="SaveAllMenuItem" Text="Save All" Click="OnSaveAllClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="PrintMenuItem" Text="Print..." Click="OnPrintClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutSubItem Text="Recent Files" x:Name="RecentFilesMenu"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="ExitMenuItem" Text="Exit" Click="OnExitClick"/>
+            </MenuBarItem>
+
+            <MenuBarItem Title="Edit">
+                <MenuFlyoutItem x:Name="UndoMenuItem" Text="Undo" Click="OnUndoClick"/>
+                <MenuFlyoutItem x:Name="RedoMenuItem" Text="Redo" Click="OnRedoClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="CutMenuItem" Text="Cut" Click="OnCutClick"/>
+                <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="OnCopyClick"/>
+                <MenuFlyoutItem x:Name="PasteMenuItem" Text="Paste" Click="OnPasteClick"/>
+                <MenuFlyoutItem x:Name="DeleteMenuItem" Text="Delete" Click="OnDeleteClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="FindMenuItem" Text="Find..." Click="OnFindClick"/>
+                <MenuFlyoutItem x:Name="FindNextMenuItem" Text="Find Next" Click="OnFindNextClick"/>
+                <MenuFlyoutItem x:Name="ReplaceMenuItem" Text="Replace..." Click="OnReplaceClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="SelectAllMenuItem" Text="Select All" Click="OnSelectAllClick"/>
+                <MenuFlyoutItem x:Name="InsertTimeMenuItem" Text="Time/Date" Click="OnInsertTimeClick"/>
+            </MenuBarItem>
+
+            <MenuBarItem Title="View">
+                <MenuFlyoutItem x:Name="StatusBarMenuItem" Text="Status Bar" Click="OnToggleStatusBarClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="ZoomInMenuItem" Text="Zoom In" Click="OnZoomInClick"/>
+                <MenuFlyoutItem x:Name="ZoomOutMenuItem" Text="Zoom Out" Click="OnZoomOutClick"/>
+                <MenuFlyoutItem x:Name="ResetZoomMenuItem" Text="Reset Zoom" Click="OnResetZoomClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="WordWrapMenuItem" Text="Word Wrap" Click="OnToggleWordWrapClick"/>
+                <MenuFlyoutItem x:Name="FullScreenMenuItem" Text="Full Screen" Click="OnToggleFullScreenClick"/>
+            </MenuBarItem>
+
+            <MenuBarItem Title="Window">
+                <MenuFlyoutItem x:Name="NewTabMenuItem" Text="New Tab" Click="OnNewTabClick"/>
+                <MenuFlyoutItem x:Name="CloseTabMenuItem" Text="Close Tab" Click="OnCloseTabClick"/>
+                <MenuFlyoutItem x:Name="CloseAllTabsMenuItem" Text="Close All Tabs" Click="OnCloseAllTabsClick"/>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="NextTabMenuItem" Text="Next Tab" Click="OnNextTabClick"/>
+                <MenuFlyoutItem x:Name="PrevTabMenuItem" Text="Previous Tab" Click="OnPrevTabClick"/>
+            </MenuBarItem>
+
+            <MenuBarItem Title="Help">
+                <MenuFlyoutItem x:Name="AboutMenuItem" Text="About Renote 2" Click="OnAboutClick"/>
+            </MenuBarItem>
+        </MenuBar>
+
+        <Grid Grid.Row="1">
+            <TabView
+                x:Name="DocumentTabView"
+                SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}"
+                TabItemsSource="{Binding Documents}"
+                SelectedItem="{Binding ActiveDocument, Mode=TwoWay}"
+                AddTabButtonClick="OnAddTabButtonClick"
+                TabCloseRequested="OnTabCloseRequested">
+
+                <TabView.TabItemTemplate>
+                    <DataTemplate x:DataType="viewModels:EditorViewModel" xmlns:viewModels="using:Renote_2.ViewModels">
+                        <TabViewItem Header="{x:Bind DisplayTitle, Mode=OneWay}">
+                            <TextBox
+                                AcceptsReturn="True"
+                                Loaded="EditorTextBox_Loaded"
+                                Unloaded="EditorTextBox_Unloaded"
+                                SelectionChanged="EditorTextBox_SelectionChanged"
+                                TextChanged="EditorTextBox_TextChanged"
+                                ScrollViewer.IsVerticalRailEnabled="True"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                ScrollViewer.IsHorizontalRailEnabled="True"
+                                ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                IsSpellCheckEnabled="False"
+                                Text="{x:Bind Content, Mode=TwoWay}"
+                                FontFamily="{Binding DataContext.FontFamily, ElementName=RootGrid}"
+                                FontSize="{Binding DataContext.EditorFontSize, ElementName=RootGrid}"
+                                TextWrapping="{Binding DataContext.IsWordWrapEnabled, ElementName=RootGrid, Converter={StaticResource BoolToTextWrappingConverter}}"
+                                Foreground="{ThemeResource TextFillColorPrimary}"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                SelectionHighlightColor="{ThemeResource SystemAccentColor}" />
+                        </TabViewItem>
+                    </DataTemplate>
+                </TabView.TabItemTemplate>
+            </TabView>
+        </Grid>
+
+        <Grid
+            x:Name="StatusBarPanel"
+            Grid.Row="2"
+            Height="28"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            Padding="8,4"
+            ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+            Visibility="{Binding IsStatusBarVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+
+            <TextBlock
+                Grid.Column="0"
+                Text="{Binding StatusBarMessage}"
+                VerticalAlignment="Center"
+                FontSize="11"
+                Foreground="{ThemeResource TextFillColorSecondary}"/>
+
+            <TextBlock Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{ThemeResource TextFillColorSecondary}">
+                <Run Text="Ln "/>
+                <Run Text="{Binding ActiveDocument.LineCount, FallbackValue=1}"/>
+            </TextBlock>
+
+            <TextBlock Grid.Column="2" Margin="20,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{ThemeResource TextFillColorSecondary}">
+                <Run Text="Col "/>
+                <Run Text="{Binding ActiveDocument.ColumnCount, FallbackValue=1}"/>
+            </TextBlock>
+
+            <TextBlock Grid.Column="3" Margin="20,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{ThemeResource TextFillColorSecondary}">
+                <Run Text="Chars: "/>
+                <Run Text="{Binding ActiveDocument.CharacterCount, FallbackValue=0}"/>
+            </TextBlock>
+
+            <TextBlock Grid.Column="4" Margin="20,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{ThemeResource TextFillColorSecondary}">
+                <Run Text="Zoom: "/>
+                <Run Text="{Binding ZoomLevel}"/>
+                <Run Text="%"/>
+            </TextBlock>
+        </Grid>
+    </Grid>
+</Window>
