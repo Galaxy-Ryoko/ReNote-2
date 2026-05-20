@@ -7,8 +7,6 @@ namespace Renote_2.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private const double BaseFontSize = 12.0;
-
         [ObservableProperty]
         private ObservableCollection<EditorViewModel> documents = new();
 
@@ -25,7 +23,10 @@ namespace Renote_2.ViewModels
         private double zoomLevel = 100;
 
         [ObservableProperty]
-        private double editorFontSize = BaseFontSize;
+        private double editorFontSize = 12.0;
+
+        [ObservableProperty]
+        private double baseFontSize = 12.0;
 
         [ObservableProperty]
         private string fontFamily = "Consolas";
@@ -155,6 +156,20 @@ namespace Renote_2.ViewModels
         {
             SearchText = null;
             ReplaceText = null;
+        }
+
+        [RelayCommand]
+        public void SetFont(string fontFamily)
+        {
+            FontFamily = fontFamily;
+            StatusBarMessage = $"Font changed to {fontFamily}";
+        }
+
+        public void ChangeFontSize(double newFontSize)
+        {
+            BaseFontSize = newFontSize;
+            EditorFontSize = newFontSize * (ZoomLevel / 100.0);
+            StatusBarMessage = $"Font size changed to {newFontSize}pt";
         }
     }
 }

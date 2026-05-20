@@ -44,6 +44,7 @@ namespace Renote_2
 
             var (fontFamily, fontSize) = _settingsService.LoadFontSettings();
             _viewModel.FontFamily = fontFamily;
+            _viewModel.BaseFontSize = fontSize;
             _viewModel.IsWordWrapEnabled = _settingsService.LoadWordWrapEnabled();
             _viewModel.ZoomLevel = _settingsService.LoadZoomLevel();
             _viewModel.IsStatusBarVisible = _settingsService.LoadStatusBarVisibility();
@@ -578,6 +579,21 @@ namespace Renote_2
         #endregion
 
         #region View menu
+
+        private async void OnFontClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new FontDialog();
+            dialog.SetCurrentFont(_viewModel.FontFamily, _viewModel.BaseFontSize);
+            dialog.XamlRoot = DialogRoot;
+
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                _viewModel.SetFontCommand.Execute(dialog.SelectedFontFamily);
+                _viewModel.ChangeFontSize(dialog.SelectedFontSize);
+                _settingsService.SaveFontSettings(dialog.SelectedFontFamily, dialog.SelectedFontSize);
+            }
+        }
 
         private void OnToggleStatusBarClick(object sender, RoutedEventArgs e)
         {

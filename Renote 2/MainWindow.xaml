@@ -50,6 +50,8 @@
             </MenuBarItem>
 
             <MenuBarItem Title="View">
+                <MenuFlyoutItem x:Name="FontMenuItem" Text="Font..." Click="OnFontClick"/>
+                <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="StatusBarMenuItem" Text="Status Bar" Click="OnToggleStatusBarClick"/>
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="ZoomInMenuItem" Text="Zoom In" Click="OnZoomInClick"/>

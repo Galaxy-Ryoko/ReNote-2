@@ -15,6 +15,14 @@
     <!-- Unpackaged app: bundle Windows App SDK runtime (avoids 0xC000027B / REGDB_E_CLASSNOTREG) -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Distribution versioning -->
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <ProductVersion>1.0.0.0</ProductVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Company>Personal</Company>
+    <Product>ReNote 2</Product>
+    <Description>A modern note-taking application built with WinUI</Description>
   </PropertyGroup>
 
   <ItemGroup>
