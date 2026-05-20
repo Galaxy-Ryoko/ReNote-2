@@ -666,7 +666,7 @@ namespace Renote_2
 
         private async void OnAboutClick(object sender, RoutedEventArgs e)
         {
-            const string aboutMessage = "Renote 2\n\nA lightweight, modern text editor for Windows 10 and Windows 11\n\nVersion 1.0\nBuilt with WinUI 3";
+            const string aboutMessage = "Renote 2\n\nA lightweight, modern text editor for Windows 10 and Windows 11\n\nVersion 1.0\nBuilt with WinUI 3\n(c) 2026 Mark Saltmer";
             await DialogHelper.ShowInfoDialogAsync(DialogRoot, "About Renote 2", aboutMessage);
         }
 
