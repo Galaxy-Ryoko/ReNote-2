@@ -17,6 +17,116 @@ namespace Renote_2.Services
         private const int MaxFileSize = 100 * 1024 * 1024; // 100 MB limit for performance
 
         /// <summary>
+        /// Reads text content from a file path with specified encoding.
+        /// </summary>
+        public async Task<string> ReadFileAsync(string filePath, Encoding encoding)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                return string.Empty;
+
+            try
+            {
+                var fileInfo = new FileInfo(filePath);
+                if (!fileInfo.Exists)
+                    return string.Empty;
+
+                if (fileInfo.Length > MaxFileSize)
+                {
+                    throw new InvalidOperationException($"File size ({fileInfo.Length} bytes) exceeds maximum limit ({MaxFileSize} bytes)");
+                }
+
+                await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(stream, encoding);
+                return await reader.ReadToEndAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to read file: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Writes text content to a file path with specified encoding.
+        /// </summary>
+        public async Task WriteFileAsync(string filePath, string content, Encoding encoding)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentNullException(nameof(filePath));
+
+            try
+            {
+                var directory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(directory))
+                    Directory.CreateDirectory(directory);
+
+                await using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                using var writer = new StreamWriter(stream, encoding);
+                await writer.WriteAsync(content);
+                await writer.FlushAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to write file: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Detects the encoding of a file path by reading the BOM (Byte Order Mark)
+        /// Falls back to UTF8 if no BOM is detected
+        /// </summary>
+        public async Task<Encoding> DetectEncodingAsync(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                return Encoding.UTF8;
+
+            try
+            {
+                await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                var buffer = new byte[4];
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+
+                if (bytesRead >= 3)
+                {
+                    // Check for UTF-8 BOM
+                    if (buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
+                        return Encoding.UTF8;
+                }
+
+                if (bytesRead >= 4)
+                {
+                    // Check for UTF-32 LE BOM
+                    if (buffer[0] == 0xFF && buffer[1] == 0xFE && buffer[2] == 0x00 && buffer[3] == 0x00)
+                        return Encoding.UTF32; // LE
+                }
+
+                if (bytesRead >= 2)
+                {
+                    // Check for UTF-16 LE BOM
+                    if (buffer[0] == 0xFF && buffer[1] == 0xFE)
+                        return Encoding.Unicode; // UTF-16 LE
+
+                    // Check for UTF-16 BE BOM
+                    if (buffer[0] == 0xFE && buffer[1] == 0xFF)
+                        return Encoding.BigEndianUnicode; // UTF-16 BE
+                }
+
+                // Check for UTF-8 without BOM by sampling content
+                if (bytesRead > 0)
+                {
+                    // For now, default to UTF8 if no BOM found
+                    return Encoding.UTF8;
+                }
+            }
+            catch
+            {
+                // On any error, default to UTF8
+                return Encoding.UTF8;
+            }
+
+            return Encoding.UTF8;
+        }
+
+        /// <summary>
         /// Opens a file picker for user to select a text file
         /// </summary>
         public async Task<(StorageFile? file, Encoding encoding)> OpenFileAsync(Window? owner = null)
@@ -25,7 +135,6 @@ namespace Renote_2.Services
             InitializePicker(picker, owner);
 
             picker.FileTypeFilter.Add(".txt");
-            picker.FileTypeFilter.Add("*");
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
 
             var file = await picker.PickSingleFileAsync();
@@ -46,7 +155,6 @@ namespace Renote_2.Services
             InitializePicker(picker, owner);
 
             picker.FileTypeChoices.Add("Text Document", new List<string> { ".txt" });
-            picker.FileTypeChoices.Add("All Files", new List<string> { "*" });
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             picker.SuggestedFileName = "document.txt";
 
@@ -54,117 +162,37 @@ namespace Renote_2.Services
         }
 
         /// <summary>
-        /// Reads text content from a file with specified encoding
+        /// Reads text content from a file with specified encoding.
         /// </summary>
-        public async Task<string> ReadFileAsync(StorageFile file, Encoding encoding)
+        public Task<string> ReadFileAsync(StorageFile file, Encoding encoding)
         {
             if (file == null)
-                return string.Empty;
+                return Task.FromResult(string.Empty);
 
-            try
-            {
-                var properties = await file.GetBasicPropertiesAsync();
-                if (properties.Size > MaxFileSize)
-                {
-                    throw new InvalidOperationException($"File size ({properties.Size} bytes) exceeds maximum limit ({MaxFileSize} bytes)");
-                }
-
-                using (var stream = await file.OpenStreamForReadAsync())
-                {
-                    using (var reader = new StreamReader(stream, encoding))
-                    {
-                        return await reader.ReadToEndAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Failed to read file: {ex.Message}", ex);
-            }
+            return ReadFileAsync(file.Path, encoding);
         }
 
         /// <summary>
-        /// Writes text content to a file with specified encoding
+        /// Writes text content to a file with specified encoding.
         /// </summary>
-        public async Task WriteFileAsync(StorageFile file, string content, Encoding encoding)
+        public Task WriteFileAsync(StorageFile file, string content, Encoding encoding)
         {
             if (file == null)
                 throw new ArgumentNullException(nameof(file));
 
-            try
-            {
-                using (var stream = await file.OpenStreamForWriteAsync())
-                {
-                    stream.SetLength(0); // Clear existing content
-                    using (var writer = new StreamWriter(stream, encoding))
-                    {
-                        await writer.WriteAsync(content);
-                        await writer.FlushAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Failed to write file: {ex.Message}", ex);
-            }
+            return WriteFileAsync(file.Path, content, encoding);
         }
 
         /// <summary>
         /// Detects the encoding of a file by reading the BOM (Byte Order Mark)
         /// Falls back to UTF8 if no BOM is detected
         /// </summary>
-        public async Task<Encoding> DetectEncodingAsync(StorageFile file)
+        public Task<Encoding> DetectEncodingAsync(StorageFile file)
         {
             if (file == null)
-                return Encoding.UTF8;
+                return Task.FromResult(Encoding.UTF8);
 
-            try
-            {
-                using (var stream = await file.OpenStreamForReadAsync())
-                {
-                    var buffer = new byte[4];
-                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-
-                    if (bytesRead >= 3)
-                    {
-                        // Check for UTF-8 BOM
-                        if (buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
-                            return Encoding.UTF8;
-                    }
-
-                    if (bytesRead >= 4)
-                    {
-                        // Check for UTF-32 LE BOM
-                        if (buffer[0] == 0xFF && buffer[1] == 0xFE && buffer[2] == 0x00 && buffer[3] == 0x00)
-                            return Encoding.UTF32; // LE
-                    }
-
-                    if (bytesRead >= 2)
-                    {
-                        // Check for UTF-16 LE BOM
-                        if (buffer[0] == 0xFF && buffer[1] == 0xFE)
-                            return Encoding.Unicode; // UTF-16 LE
-
-                        // Check for UTF-16 BE BOM
-                        if (buffer[0] == 0xFE && buffer[1] == 0xFF)
-                            return Encoding.BigEndianUnicode; // UTF-16 BE
-                    }
-
-                    // Check for UTF-8 without BOM by sampling content
-                    if (bytesRead > 0)
-                    {
-                        // For now, default to UTF8 if no BOM found
-                        return Encoding.UTF8;
-                    }
-                }
-            }
-            catch
-            {
-                // On any error, default to UTF8
-                return Encoding.UTF8;
-            }
-
-            return Encoding.UTF8;
+            return DetectEncodingAsync(file.Path);
         }
 
         private static void InitializePicker(object picker, Window? owner)

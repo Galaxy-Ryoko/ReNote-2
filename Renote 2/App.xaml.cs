@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.RegularExpressions;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
@@ -57,8 +58,25 @@ namespace Renote_2
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            _window = new MainWindow();
+            var launchFiles = ParseLaunchFilePaths(args.Arguments);
+            _window = new MainWindow(launchFiles);
             _window.Activate();
+        }
+
+        private static IReadOnlyList<string> ParseLaunchFilePaths(string arguments)
+        {
+            if (string.IsNullOrWhiteSpace(arguments))
+                return Array.Empty<string>();
+
+            var filePaths = new List<string>();
+            foreach (Match match in Regex.Matches(arguments, "\"([^\"]+)\"|([^\\s]+)"))
+            {
+                var value = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+                if (File.Exists(value))
+                    filePaths.Add(value);
+            }
+
+            return filePaths;
         }
     }
 }

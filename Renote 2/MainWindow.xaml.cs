@@ -26,7 +26,7 @@ namespace Renote_2
         private readonly Dictionary<EditorViewModel, TextBox> _editorBoxes = new();
         private bool _isFullScreen;
 
-        public MainWindow()
+        public MainWindow(IEnumerable<string>? launchFilePaths = null)
         {
             InitializeComponent();
             Title = "Renote 2 - Text Editor";
@@ -51,6 +51,17 @@ namespace Renote_2
             _viewModel.EditorFontSize = fontSize * (_viewModel.ZoomLevel / 100.0);
 
             PopulateRecentFilesMenu();
+
+            if (launchFilePaths != null)
+            {
+                var filesToOpen = launchFilePaths
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (filesToOpen.Count > 0)
+                    _ = OpenFilePathsAsync(filesToOpen, showErrors: false);
+            }
         }
 
         private XamlRoot DialogRoot => Content.XamlRoot;
@@ -200,6 +211,75 @@ namespace Renote_2
 
         #endregion
 
+        #region Drag and drop / external file open
+
+        private void RootGrid_DragOver(object sender, DragEventArgs e)
+        {
+            e.AcceptedOperation = e.DataView.Contains(StandardDataFormats.StorageItems)
+                ? DataPackageOperation.Copy
+                : DataPackageOperation.None;
+            e.Handled = true;
+        }
+
+        private async void RootGrid_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.DataView.Contains(StandardDataFormats.StorageItems))
+                return;
+
+            var items = await e.DataView.GetStorageItemsAsync();
+            var files = items.OfType<StorageFile>().Select(file => file.Path).ToList();
+            if (files.Count == 0)
+                return;
+
+            await OpenFilePathsAsync(files);
+        }
+
+        private async Task OpenFilePathsAsync(IEnumerable<string> filePaths, bool showErrors = true)
+        {
+            foreach (var filePath in filePaths)
+            {
+                if (string.IsNullOrWhiteSpace(filePath))
+                    continue;
+
+                await OpenFilePathAsync(filePath, addToRecentFiles: true, showErrors: showErrors);
+            }
+        }
+
+        private async Task OpenStorageFileAsync(StorageFile file, bool addToRecentFiles = true)
+        {
+            var encoding = await _fileService.DetectEncodingAsync(file);
+            var content = await _fileService.ReadFileAsync(file, encoding);
+
+            var doc = new EditorViewModel(file.Path, content, encoding);
+            _viewModel.Documents.Add(doc);
+            _viewModel.ActiveDocument = doc;
+            _viewModel.SelectedTabIndex = _viewModel.Documents.Count - 1;
+
+            if (addToRecentFiles)
+            {
+                _settingsService.AddRecentFile(file.Path);
+                PopulateRecentFilesMenu();
+            }
+
+            _viewModel.StatusBarMessage = $"Opened: {file.Name}";
+        }
+
+        private async Task OpenFilePathAsync(string filePath, bool addToRecentFiles = true, bool showErrors = true)
+        {
+            try
+            {
+                var file = await StorageFile.GetFileFromPathAsync(filePath);
+                await OpenStorageFileAsync(file, addToRecentFiles);
+            }
+            catch (Exception ex)
+            {
+                if (showErrors)
+                    await DialogHelper.ShowErrorDialogAsync(DialogRoot, "Error Opening File", ex.Message);
+            }
+        }
+
+        #endregion
+
         #region File menu
 
         private void OnNewClick(object sender, RoutedEventArgs e) =>
@@ -215,23 +295,47 @@ namespace Renote_2
         {
             try
             {
-                var (file, encoding) = await _fileService.OpenFileAsync(this);
+                var (file, _) = await _fileService.OpenFileAsync(this);
                 if (file == null)
                     return;
 
-                var content = await _fileService.ReadFileAsync(file, encoding);
-                var doc = new EditorViewModel(file.Path, content, encoding);
-                _viewModel.Documents.Add(doc);
-                _viewModel.ActiveDocument = doc;
-                _viewModel.SelectedTabIndex = _viewModel.Documents.Count - 1;
-
-                _settingsService.AddRecentFile(file.Path);
-                PopulateRecentFilesMenu();
-                _viewModel.StatusBarMessage = $"Opened: {file.Name}";
+                await OpenStorageFileAsync(file);
             }
             catch (Exception ex)
             {
                 await DialogHelper.ShowErrorDialogAsync(DialogRoot, "Error Opening File", ex.Message);
+            }
+        }
+
+        private async void OnOpenWithClick(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.ActiveDocument == null)
+                return;
+
+            try
+            {
+                StorageFile file;
+                if (!string.IsNullOrEmpty(_viewModel.ActiveDocument.FilePath) && File.Exists(_viewModel.ActiveDocument.FilePath))
+                {
+                    file = await StorageFile.GetFileFromPathAsync(_viewModel.ActiveDocument.FilePath);
+                }
+                else
+                {
+                    var tempPath = Path.Combine(Path.GetTempPath(), $"renote2_openwith_{Guid.NewGuid():N}.txt");
+                    await File.WriteAllTextAsync(tempPath, _viewModel.ActiveDocument.Content);
+                    file = await StorageFile.GetFileFromPathAsync(tempPath);
+                }
+
+                var launched = await Launcher.LaunchFileAsync(file, new LauncherOptions
+                {
+                    DisplayApplicationPicker = true
+                });
+
+                _viewModel.StatusBarMessage = launched ? "Opened in selected app" : "Open With cancelled";
+            }
+            catch (Exception ex)
+            {
+                await DialogHelper.ShowErrorDialogAsync(DialogRoot, "Open With", ex.Message);
             }
         }
 
@@ -711,22 +815,7 @@ namespace Renote_2
             if (sender is not MenuFlyoutItem item || item.Tag is not string filePath)
                 return;
 
-            try
-            {
-                var file = await StorageFile.GetFileFromPathAsync(filePath);
-                var encoding = await _fileService.DetectEncodingAsync(file);
-                var content = await _fileService.ReadFileAsync(file, encoding);
-
-                var doc = new EditorViewModel(file.Path, content, encoding);
-                _viewModel.Documents.Add(doc);
-                _viewModel.ActiveDocument = doc;
-                _viewModel.SelectedTabIndex = _viewModel.Documents.Count - 1;
-                _viewModel.StatusBarMessage = $"Opened: {file.Name}";
-            }
-            catch (Exception ex)
-            {
-                await DialogHelper.ShowErrorDialogAsync(DialogRoot, "Error Opening Recent File", ex.Message);
-            }
+            await OpenFilePathAsync(filePath);
         }
 
         #endregion

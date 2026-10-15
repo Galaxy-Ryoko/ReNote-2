@@ -14,13 +14,14 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="RootGrid" RowDefinitions="Auto,*,Auto" KeyDown="RootGrid_KeyDown">
+    <Grid x:Name="RootGrid" RowDefinitions="Auto,*,Auto" KeyDown="RootGrid_KeyDown" AllowDrop="True" DragOver="RootGrid_DragOver" Drop="RootGrid_Drop">
         <MenuBar Grid.Row="0">
             <MenuBarItem Title="File">
                 <MenuFlyoutItem x:Name="NewMenuItem" Text="New" Click="OnNewClick"/>
                 <MenuFlyoutItem x:Name="NewWindowMenuItem" Text="New Window" Click="OnNewWindowClick"/>
                 <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open..." Click="OnOpenClick"/>
+                <MenuFlyoutItem x:Name="OpenWithMenuItem" Text="Open With..." Click="OnOpenWithClick"/>
                 <MenuFlyoutItem x:Name="SaveMenuItem" Text="Save" Click="OnSaveClick"/>
                 <MenuFlyoutItem x:Name="SaveAsMenuItem" Text="Save As..." Click="OnSaveAsClick"/>
                 <MenuFlyoutItem x:Name="SaveAllMenuItem" Text="Save All" Click="OnSaveAllClick"/>
