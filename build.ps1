@@ -6,7 +6,8 @@ param(
     [string]$Platform = "x64",
     [string]$Configuration = "Release",
     [switch]$Clean,
-    [switch]$NoPublish
+    [switch]$NoPublish,
+    [switch]$CompressedOnly
 )
 
 $projectPath = "Renote 2/Renote 2.csproj"
@@ -24,7 +25,7 @@ function Build-Platform {
     param([string]$Plat)
     Write-Host "Building for platform: $Plat" -ForegroundColor Green
     $publishDir = "Renote 2/bin/$Configuration/$frameworkVersion/win-$Plat/publish"
-    
+
     if (-not $NoPublish) {
         if ($Clean) {
             Write-Host "Cleaning previous build..." -ForegroundColor Yellow
@@ -37,7 +38,7 @@ function Build-Platform {
             return $false
         }
     }
-    
+
     $packageName = "ReNote2-$Plat"
     $packageDir = Join-Path $outputBase $packageName
     $zipFile = Join-Path $outputBase "$packageName.zip"
@@ -46,9 +47,22 @@ function Build-Platform {
     Remove-Item -Path $zipFile -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
     Copy-Item -Path "$publishDir/*" -Destination $packageDir -Recurse -Force
+
+    # Remove unnecessary files to reduce file count
+    Write-Host "Optimizing package..." -ForegroundColor Yellow
+    Get-ChildItem -Path $packageDir -Recurse -Include "*.dbg", "*.pdb", "*.chk" -Force | Remove-Item -Force -ErrorAction SilentlyContinue
+    # Remove .NET host files that are not needed
+    Remove-Item -Path "$packageDir/dotnet.exe" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$packageDir/dotnet.dll" -Force -ErrorAction SilentlyContinue
+
+    # Count files after optimization
+    $fileCount = (Get-ChildItem -Path $packageDir -Recurse -File | Measure-Object).Count
+    $dirCount = (Get-ChildItem -Path $packageDir -Recurse -Directory | Measure-Object).Count
+
     Compress-Archive -Path $packageDir -DestinationPath $zipFile -Force
     $fileSize = (Get-Item $zipFile).Length / 1MB
     Write-Host "[OK] Package created: $zipFile ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
+    Write-Host "     Files: $fileCount | Directories: $dirCount" -ForegroundColor Cyan
     return $true
 }
 

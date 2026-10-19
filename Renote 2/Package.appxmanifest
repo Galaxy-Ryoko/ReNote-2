@@ -11,7 +11,7 @@
   <Identity
     Name="09d348af-4e06-4aec-bacb-12fbb791582d"
     Publisher="CN=MarkS"
-    Version="1.0.0.0" />
+    Version="1.2.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="09d348af-4e06-4aec-bacb-12fbb791582d" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

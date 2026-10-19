@@ -59,6 +59,14 @@ namespace Renote_2
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             var launchFiles = ParseLaunchFilePaths(args.Arguments);
+
+            // In unpackaged WinUI desktop activation, LaunchActivatedEventArgs.Arguments can be empty
+            // even when the app is started with a file path (for example via Explorer Open With).
+            if (launchFiles.Count == 0)
+            {
+                launchFiles = ParseLaunchFilePaths(Environment.GetCommandLineArgs().Skip(1));
+            }
+
             _window = new MainWindow(launchFiles);
             _window.Activate();
         }
@@ -74,6 +82,21 @@ namespace Renote_2
                 var value = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
                 if (File.Exists(value))
                     filePaths.Add(value);
+            }
+
+            return filePaths;
+        }
+
+        private static IReadOnlyList<string> ParseLaunchFilePaths(IEnumerable<string> arguments)
+        {
+            if (arguments == null)
+                return Array.Empty<string>();
+
+            var filePaths = new List<string>();
+            foreach (var argument in arguments)
+            {
+                if (!string.IsNullOrWhiteSpace(argument) && File.Exists(argument))
+                    filePaths.Add(argument);
             }
 
             return filePaths;
